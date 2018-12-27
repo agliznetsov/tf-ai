@@ -1,17 +1,26 @@
+import numpy as np
 import tensorflow as tf
+from plot_history import *
 
-columns = [tf.int32] * 10
+data = np.genfromtxt('./data/t.csv', delimiter=',')
+np.random.shuffle(data)
+m = data.shape[0]
+m_train = int(m * 0.5)
+data = np.split(data, [9], axis=1)
+X = np.split(data[0], [m_train])
+Y = np.split(data[1], [m_train])
 
-dataset = tf.data.experimental.CsvDataset("./data/t.csv", columns)
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Dense(9, kernel_regularizer=tf.keras.regularizers.l2(0.1), activation=tf.nn.relu),
+    # tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dense(9, kernel_regularizer=tf.keras.regularizers.l2(0.1), activation=tf.nn.softmax)
+])
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
 
-print(dataset)
-print(dataset.output_shapes)
+history = model.fit(X[0], Y[0], epochs=500, verbose=0)
+res = model.evaluate(X[1], Y[1], verbose=0)
+print('Test evaluation: ' + str(res))
 
-next_element = dataset.make_one_shot_iterator().get_next()
-with tf.Session() as sess:
-    while True:
-        try:
-            print(sess.run(next_element))
-        except tf.errors.OutOfRangeError:
-            break
-
+plot_history([('baseline', history)])
